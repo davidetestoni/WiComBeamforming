@@ -1,4 +1,5 @@
 %% Initialize system constants
+clear all,close all,clc;
 rng(2014);
 gc = set2DParameters();
 
@@ -28,3 +29,4 @@ steeringvec = ...
 
 arrayresp = phased.ArrayResponse('SensorArray',ula,'WeightsInputPort',true);
 
+[wT,arrayResp] = visualize2D(gc, tp,ula);

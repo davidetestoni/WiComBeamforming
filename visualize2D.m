@@ -1,5 +1,14 @@
-function visualize2D(gc, tp,ula)
+ function [wT,arrayResponse] = visualize2D(gc, tp,ula)
 
+
+ula = phased.ULA( tp.numTXElements, ...
+        'ElementSpacing', 0.5*gc.lambda, ...
+        'Element', phased.IsotropicAntennaElement('BackBaffled', true));
+
+steeringvec = ...
+    phased.SteeringVector('SensorArray',ula,'PropagationSpeed',gc.cLight);
+
+arrayresp = phased.ArrayResponse('SensorArray',ula,'WeightsInputPort',true);
 
 % Steer the transmitter main lobe
 wT = steeringvec(gc.fc,[tp.steeringAngle;0]);
