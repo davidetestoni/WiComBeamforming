@@ -2,7 +2,7 @@ close all
 clear all
 clc
 %%
-N_bits = 1e6;
+N_bits = 1e8;
 M = 16;
 N_fft = 64;
 pilot_pos = [12;26;40;54];
@@ -63,7 +63,7 @@ ylabel('Amplitude')
 
 %% RX
 % channel
-rx_sig = awgn(cp_sig,15,'measured');
+rx_sig = awgn(cp_sig,20,'measured');
 % remove cp
 rx_sig = rx_sig(N_cyclepref+1:end,:,:);
 % move to freq
@@ -74,14 +74,18 @@ rx_data = rx_data(guard_bands(1)+1 : end - guard_bands(2),:,:);
 
 demod_sample = qamdemod(rx_data,M);
 demod_bit = zeros(size(data_bit));
+numErr = zeros(size(demod_sample,3),1);
+ber = zeros(size(demod_sample,3),1);
 for i = 1: size(demod_sample,3)
     demod_bit(:,:,i) = de2bi(demod_sample(:,:,i),'left-msb');
     [numErr(i),ber(i)]= biterr(data_bit(:,:,i),demod_bit(:,:,i));    
 end
 avgBER = mean(ber)
 
+return
 
 
+%%
 
 
 
