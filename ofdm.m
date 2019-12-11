@@ -2,7 +2,7 @@ close all
 clear all
 clc
 %%
-N_bits = 1e4;
+N_bits = 1e6;
 M = 16;
 N_fft = 64;
 pilot_pos = [12;26;40;54];
@@ -53,8 +53,37 @@ cp_sig = zeros(N_fft + N_cyclepref,1,N_blocks);
 cp_sig(1:N_cyclepref,:,:) = ifft_sig(end-N_cyclepref+1:end,:,:);
 cp_sig(N_cyclepref + 1:end,:,:) = ifft_sig(:,:,:);
 
-%stem(real(data_ofdm(:,:,5)));
-%scatterplot(data_ofdm(:,:,1));
+t = 0:1/B *1e3:((1/delta_f)-1/B) *1e3;
+bar(t,abs(ifft_sig(:,:,5)));
+xlabel('time(us)')
+ylabel('Amplitude')
+
+
+
+
+%% RX
+% channel
+rx_sig = awgn(cp_sig,15,'measured');
+% remove cp
+rx_sig = rx_sig(N_cyclepref+1:end,:,:);
+% move to freq
+rx_data = fft(rx_sig,N_fft);
+% remove guard bands and pilots
+rx_data(pilot_pos,:,:) = [];
+rx_data = rx_data(guard_bands(1)+1 : end - guard_bands(2),:,:);
+
+demod_sample = qamdemod(rx_data,M);
+demod_bit = zeros(size(data_bit));
+for i = 1: size(demod_sample,3)
+    demod_bit(:,:,i) = de2bi(demod_sample(:,:,i),'left-msb');
+    [numErr(i),ber(i)]= biterr(data_bit(:,:,i),demod_bit(:,:,i));    
+end
+avgBER = mean(ber)
+
+
+
+
+
 
 
 %% Freq Response
@@ -67,40 +96,44 @@ f = -20*delta_f:df:20*delta_f;
 s = sinc(f / delta_f);
 
 % make ofdm continuos signal
-ofdm_cont = zeros(N_fft * over_samp,1);
+ofdm_cont = zeros(N_fft * over_samp,1,size(data_ofdm,3));
+ofdm_freq = zeros(size(ofdm_cont,1) + max(size(s)) -1,size(ofdm_cont,2),size(ofdm_cont,2)) ;
 j = 1;
-step = size(ofdm_cont,1)/N_fft;
-for i = 1:size(data_ofdm(:,:,1),1)
-    ofdm_cont(j) = data_ofdm(i,1,1);
-    j = j + step;
+for k = 1 : size(data_ofdm,3)
+    for i = 1:size(data_ofdm(:,:,k),1)
+        ofdm_cont(j) = data_ofdm(i,1,k);
+        j = j + over_samp;
+    end
+    ofdm_freq(:,1,k) = conv(s,ofdm_cont(:,1,k));
 end
-clear j;
+clear i j k;
 %stem(ofdm_cont)
 %plot(f,s)
 
-ofdm_freq = conv(s,ofdm_cont);
+
 x_siz = size(ofdm_freq,1);
 ff = floor(-x_siz/2) * df : df: (floor(x_siz/2)-1)*df;
-plot(ff,log(abs(ofdm_freq).^2)*10);
+plot(ff,log(abs(ofdm_freq(:,:,1)).^2)*10);
 xlabel('freq')
 ylabel('PSD (dB)')
 ylim([-100 100]);
+xlim([-N_fft/2*delta_f N_fft/2*delta_f])
 %stem(data_ofdm(:,:,1));
 %plot(real(ifft_sig(:,:,1)));
 
 %stem(real(data_ofdm(:,:,1)));
 
 
+%% averge on all symbols
 
+x_siz = size(ofdm_freq,1);
+ff = floor(-x_siz/2) * df : df: (floor(x_siz/2)-1)*df;
+plot(ff,log(abs(mean(ofdm_freq,3)).^2)*10);
+xlabel('freq')
+ylabel('PSD (dB)')
+ylim([-100 100]);
+xlim([-N_fft/2*delta_f N_fft/2*delta_f])
 
-
-
-%% 
-a = [ 1 1 1 1 1 0 0 0 0];
-a = insert(a,2,3)
-a = insert(a,2,5)
-a = insert(a,2,6)
-a = insert(a,2,7)
 
 
 
