@@ -2,7 +2,7 @@ close all
 clear all
 clc
 %%
-N_bits = 1e8;
+N_bits = 1e4;
 M = 16;
 N_fft = 64;
 pilot_pos = [12;26;40;54];
@@ -10,7 +10,10 @@ guard_bands = [6,5];
 N_bit_block = (N_fft - max(size(pilot_pos)) - sum(guard_bands)) * log2(M); %block is 1 ofdm symbol
 N_blocks = ceil(N_bits/N_bit_block);
 N_cyclepref = 16;
+N_carried_data = N_fft - numel(pilot_pos) - sum(guard_bands);
 
+fc = 2.4e9;
+lambda = physconst('LightSpeed')/fc;
 delta_f = 15; %kHz
 B = delta_f * N_fft;
 Ts = 1/B;
@@ -54,16 +57,16 @@ cp_sig(1:N_cyclepref,:,:) = ifft_sig(end-N_cyclepref+1:end,:,:);
 cp_sig(N_cyclepref + 1:end,:,:) = ifft_sig(:,:,:);
 
 t = 0:1/B *1e3:((1/delta_f)-1/B) *1e3;
-bar(t,abs(ifft_sig(:,:,5)));
-xlabel('time(us)')
-ylabel('Amplitude')
+%bar(t,abs(ifft_sig(:,:,5)));
+%xlabel('time(us)')
+%ylabel('Amplitude')
 
 
 
 
 %% RX
 % channel
-rx_sig = awgn(cp_sig,20,'measured');
+rx_sig = awgn(cp_sig,10,'measured');
 % remove cp
 rx_sig = rx_sig(N_cyclepref+1:end,:,:);
 % move to freq
@@ -80,14 +83,64 @@ for i = 1: size(demod_sample,3)
     demod_bit(:,:,i) = de2bi(demod_sample(:,:,i),'left-msb');
     [numErr(i),ber(i)]= biterr(data_bit(:,:,i),demod_bit(:,:,i));    
 end
+totErr = sum(numErr);
+compBER =totErr /  N_bits
 avgBER = mean(ber)
 
+
+
+
+%% reference modulator
+modulatorOFDM = comm.OFDMModulator(...
+    'FFTLength' ,                      N_fft,...
+    'NumGuardBandCarriers', guard_bands',...
+    'InsertDCNull',                   false, ...
+    'PilotInputPort',                 true,...
+    'PilotCarrierIndices',         pilot_pos,...
+    'CyclicPrefixLength',         N_cyclepref);
+    %'NumSymbols',                  numDataSymbols,...
+    %'NumTransmitAntennas',  numTx);
+    
+    pils = repmat(pil,4,1);
+    ref_ofdm = modulatorOFDM(data_qam(:,:,1),pils);
+    
+    demodulatorOFDM = comm.OFDMDemodulator(...
+     'FFTLength' ,                      N_fft,...
+     'NumGuardBandCarriers', guard_bands',...
+     'RemoveDCCarrier',           false, ...
+     'PilotOutputPort',           true, ...
+     'PilotCarrierIndices',        pilot_pos,...
+     'CyclicPrefixLength',         N_cyclepref);
+     %'NumSymbols',                  numDataSymbols);
+     
+     ref_rx = demodulatorOFDM(ref_ofdm);
+    
+
+%% Collect
+N_ant = 4;
+ula =phased.ULA( N_ant, ...
+        'ElementSpacing', 0.5*lambda, ...
+        'Element', phased.IsotropicAntennaElement('BackBaffled', true));
+
+y = zeros(size(cp_sig,1),N_ant,size(cp_sig,3));
+for i = 1:size(cp_sig,3)
+    y(:,:,i) = collectPlaneWave(ula,cp_sig(:,:,i),[2; 0],fc,physconst('LightSpeed'));
+end
+
+y_freq = zeros(N_carried_data,N_ant,size(y,3));
+y_sample = zeros(N_carried_data,N_ant,size(y,3));
+for i = 1 : N_ant
+    y_freq (:,i,:)= ofdm_demod(y(:,i,:),N_fft,N_cyclepref,pilot_pos,guard_bands);
+    y_sample(:,i,:)= qamdemod(y_freq(:,i,:),M);
+end
+
+y_ber = zeros(size(y_sample));
+for i = 1:size(y_sample,2)
+    y_ber(:,i,:) = (y_sample(:,i,:) == data_sample);
+    
+end
+
 return
-
-
-%%
-
-
 
 
 %% Freq Response
