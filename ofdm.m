@@ -66,7 +66,7 @@ t = 0:1/B *1e3:((1/delta_f)-1/B) *1e3;
 
 %% RX
 % channel
-rx_sig = awgn(cp_sig,10,'measured');
+rx_sig = awgn(cp_sig,60,'measured');
 % remove cp
 rx_sig = rx_sig(N_cyclepref+1:end,:,:);
 % move to freq
