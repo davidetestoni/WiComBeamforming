@@ -10,15 +10,12 @@ htgt1 = polarplot(deg2rad(tp.tgt1_angle), tp.tgt1_range, 'sg');
 set(htgt1, 'MarkerFaceColor', 'r')
 hold on
 
-htgt2 = polarplot(deg2rad(tp.tgt2_angle), tp.tgt2_range, 'og');
+htgt2 = polarplot(deg2rad(tp.tgt2_angle), tp.tgt2_range, 'sg');
 set(htgt2, 'MarkerFaceColor', 'r')
 
 
-hintf1 = polarplot(deg2rad(tp.intf1_angle), tp.intf1_range, 'sr');
-set(hintf1, 'MarkerFaceColor', 'b')
-
-hintf2 = polarplot(deg2rad(tp.intf2_angle), tp.intf2_range, 'or');
-set(hintf2, 'MarkerFaceColor', 'b')
+hInterferer = polarplot(deg2rad(int_th), int_r, 'or');
+set(hInterferer, 'MarkerFaceColor', 'b')
 %base station
 bs = polarplot(0,0, 'dc');
 set(bs, 'MarkerFaceColor', 'b')
