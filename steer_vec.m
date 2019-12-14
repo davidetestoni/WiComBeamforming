@@ -5,7 +5,7 @@ clc
 fc = 1e9;
 cLight = 3e8;
 lambda = cLight/fc;
-angle = 45;
+angle = 55;
 txEl = 8;
 k = 2*pi / lambda;
 d = 0.5*lambda;

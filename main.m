@@ -8,16 +8,16 @@ gc = set2DParameters();
 tp.snr = 10;
 tp.txGain = 0;           % dB
 tp.tgt1_range = 2750;    % m
-tp.tgt1_angle = -50;       % degrees
+tp.tgt1_angle = 32;       % degrees
 tp.tgt2_range = 2750;    % m
 tp.tgt2_angle = 30;       % degrees
 
 tp.intf1_range = 9000;    % m
-tp.intf1_angle =   50;    % degrees
+tp.intf1_angle =   26;    % degrees
 tp.intf2_range = 9000;    % m
-tp.intf2_angle =   29;    % degrees
+tp.intf2_angle =   -50;    % degrees
 
-tp.numTXElements = 8;       
+tp.numTXElements = 64;       
 tp.steeringAngle = 0;     % degrees
 tp.rxGain = 100; % dB ???
 
@@ -44,9 +44,9 @@ visualize2D(gc, tp,ula);
 % target and interferer send signaling data to allow discovery
 %free space loss
 rx_tgt1 = cp_sig(:,:,1).* 10^-(fspl(tp.tgt1_range,gc.lambda)/10);
-rx_tgt2 = cp_sig(:,:,2).* 10^-(fspl(tp.tgt2_range,gc.lambda)/10);
-rx_intf1 = cp_sig(:,:,3).* 10^-(fspl(tp.intf1_range,gc.lambda)/10);
-rx_intf2 = cp_sig(:,:,4).* 10^-(fspl(tp.intf2_range,gc.lambda)/10);
+rx_tgt2 = cp_sig(:,:,11).* 10^-(fspl(tp.tgt2_range,gc.lambda)/10);
+rx_intf1 = cp_sig(:,:,22).* 10^-(fspl(tp.intf1_range,gc.lambda)/10);
+rx_intf2 = cp_sig(:,:,33).* 10^-(fspl(tp.intf2_range,gc.lambda)/10);
 
 rx = collectPlaneWave(ula,[rx_tgt1 rx_tgt2 rx_intf1 rx_intf2],[tp.tgt1_angle tp.tgt2_angle  tp.intf1_angle tp.intf2_angle; 0 0 0 0],gc.fc);
 rx = awgn(rx,tp.snr,'measured');
@@ -59,3 +59,5 @@ musicEstimator = phased.MUSICEstimator('SensorArray',ula,...
 [y,doas] = musicEstimator(rx);
 figure
 plotSpectrum(musicEstimator,'NormalizeResponse',true);
+disp(doas);
+disp([tp.tgt1_angle tp.tgt2_angle  tp.intf1_angle tp.intf2_angle]);

@@ -6,26 +6,26 @@ function visualize2D(gc, tp,ula)
 
 %hold(hPlotAxes, 'on')
 
-htgt1 = polarplot(deg2rad(tp.tgt1_angle), tp.tgt1_range, 'sg');
-set(htgt1, 'MarkerFaceColor', 'r')
+htgt1 = polarplot(deg2rad(tp.tgt1_angle), tp.tgt1_range, 'sy');
+set(htgt1, 'MarkerFaceColor', 'g')
 hold on
 
-htgt2 = polarplot(deg2rad(tp.tgt2_angle), tp.tgt2_range, 'og');
-set(htgt2, 'MarkerFaceColor', 'r')
+htgt2 = polarplot(deg2rad(tp.tgt2_angle), tp.tgt2_range, 'ob');
+set(htgt2, 'MarkerFaceColor', 'g')
 
 
-hintf1 = polarplot(deg2rad(tp.intf1_angle), tp.intf1_range, 'sr');
-set(hintf1, 'MarkerFaceColor', 'b')
+hintf1 = polarplot(deg2rad(tp.intf1_angle), tp.intf1_range, 'sy');
+set(hintf1, 'MarkerFaceColor', 'r')
 
-hintf2 = polarplot(deg2rad(tp.intf2_angle), tp.intf2_range, 'or');
-set(hintf2, 'MarkerFaceColor', 'b')
+hintf2 = polarplot(deg2rad(tp.intf2_angle), tp.intf2_range, 'ob');
+set(hintf2, 'MarkerFaceColor', 'r')
 %base station
 bs = polarplot(0,0, 'dc');
 set(bs, 'MarkerFaceColor', 'b')
 
 %hold(hPlotAxes, 'off')
 
-legend('Target','Interference','Base Station', ...
+legend('Target1','Target2','Interference1','Interference2','Base Station', ...
     'Location','northeastoutside');
 hold off
 
