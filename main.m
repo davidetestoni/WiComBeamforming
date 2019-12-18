@@ -6,16 +6,16 @@ gc = set2DParameters();
 
 % Tunable parameters
 tp.snr = 10;
-tp.txGain = 0;           % dB
-tp.tgt1_range = 2750;    % m
-tp.tgt1_angle = 40;       % degrees
-tp.tgt2_range = 2750;    % m
-tp.tgt2_angle = 10;       % degrees
 
-tp.intf1_range = 9000;    % m
-tp.intf1_angle =   26;    % degrees
-tp.intf2_range = 9000;    % m
-tp.intf2_angle =   -50;    % degrees
+tp.tgt(1).range = 2750;    % m
+tp.tgt(1).angle = 0;       % degrees
+tp.tgt(2).range = 2750;    % m
+tp.tgt(2).angle = 10;       % degrees
+
+tp.intf(1).range = 9000;    % m
+tp.intf(1).angle =   26;    % degrees
+tp.intf(2).range = 9000;    % m
+tp.intf(2).angle =   -50;    % degrees
 
 tp.num_tx_el = 16;       
 tp.steer_angle = 0;     % degrees
@@ -40,13 +40,30 @@ arrayresp = phased.ArrayResponse('SensorArray',ula,'WeightsInputPort',true);
 
 %% DOA estimation
 % target and interferer send signaling data to allow discovery
-%free space loss
-rx_tgt1 = cp_sig(:,:,1).* 10^-(fspl(tp.tgt1_range,gc.lambda)/10);
-rx_tgt2 = cp_sig(:,:,11).* 10^-(fspl(tp.tgt2_range,gc.lambda)/10);
-rx_intf1 = cp_sig(:,:,22).* 10^-(fspl(tp.intf1_range,gc.lambda)/10);
-rx_intf2 = cp_sig(:,:,33).* 10^-(fspl(tp.intf2_range,gc.lambda)/10);
 
-rx = collectPlaneWave(ula,[rx_tgt1 rx_tgt2 rx_intf1 rx_intf2],[tp.tgt1_angle tp.tgt2_angle  tp.intf1_angle tp.intf2_angle; 0 0 0 0],gc.fc);
+tp.tgt(1).tx_sig = cp_sig(:,:,1);
+tp.tgt(1).data_bit = data_bit(:,:,1);
+
+
+tp.tgt(2).tx_sig = cp_sig(:,:,11);
+tp.tgt(2).data_bit = data_bit(:,:,11);
+
+tp.intf(1).tx_sig = cp_sig(:,:,22);
+tp.intf(1).data_bit = data_bit(:,:,22);
+
+tp.intf(2).tx_sig = cp_sig(:,:,33);
+tp.intf(2).data_bit = data_bit(:,:,33);
+
+%free space loss
+tp.tgt(1).rx_sig = tp.tgt(1).tx_sig.* 10^-(fspl(tp.tgt(1).range,gc.lambda)/10);
+tp.tgt(2).rx_sig = tp.tgt(2).tx_sig.* 10^-(fspl(tp.tgt(2).range,gc.lambda)/10);
+tp.intf(1).rx_sig = tp.intf(1).tx_sig.* 10^-(fspl(tp.intf(1).range,gc.lambda)/10);
+tp.intf(2).rx_sig = tp.intf(2).tx_sig.* 10^-(fspl(tp.intf(2).range,gc.lambda)/10);
+
+all_sig = [tp.tgt(1).rx_sig tp.tgt(2).rx_sig tp.intf(1).rx_sig tp.intf(2).rx_sig];
+rx = collectPlaneWave(ula,all_sig,[tp.tgt(1).angle tp.tgt(2).angle  tp.intf(1).angle tp.intf(2).angle; 0 0 0 0],gc.fc);
+%rx = collectPlaneWave(ula,[tp.tgt(1).rx_sig tp.tgt(2).rx_sig],[tp.tgt(1).angle tp.tgt(2).angle;0 0],gc.fc);
+
 rx = awgn(rx,tp.snr,'measured');
 
 musicEstimator = phased.MUSICEstimator('SensorArray',ula,...
@@ -59,25 +76,35 @@ musicEstimator = phased.MUSICEstimator('SensorArray',ula,...
 %figure
 %plotSpectrum(musicEstimator,'NormalizeResponse',true);
 disp(doas);
-disp([tp.tgt1_angle tp.tgt2_angle  tp.intf1_angle tp.intf2_angle]);
+disp([tp.tgt(1).angle tp.tgt(2).angle  tp.intf(1).angle tp.intf(2).angle]);
 
 %% Steering
-num_tgt = 2;
+num_tgt = length(tp.tgt);
 steer_vec = steer_vec_ula(ula,gc.lambda,doas(1:num_tgt));
+% weighted response
 y = zeros(size(rx,1),num_tgt);
 for j = 1 :size(steer_vec,2)
     s0 = steer_vec(:,j);
     w = s0 / tp.num_tx_el;
     for i = 1:size(rx,1)
-        %y(i,j) = w' * reshape(rx(i,:),[tp.num_tx_el 1]);
         y(i,j) = w' * transpose(rx(i,:));
     end
 end
-
-% demodulate ofdm symbol
+%% demodulate ofdm symbol
 y_cap = zeros(size(data_qam,1),num_tgt);
-y_qam = zeros(size(data_qam,1),num_tgt);
+y_sample = zeros(size(data_qam,1),num_tgt);
 for i = 1:size(y_cap,2)
-    y_cap(:,i)= ofdm_demod(y(:,i),gc.N_fft,gc.N_cyclepref,gc.pilot_pos,gc.guard_bands);
-    y_qam(:,i) = qamdemod(y_cap(:,i),gc.M);
+    y_cap(:,i) = ofdm_demod(y(:,i),gc.N_fft,gc.N_cyclepref,gc.pilot_pos,gc.guard_bands);
+    y_sample(:,i) = qamdemod(y_cap(:,i),gc.M);
+end
+
+[~,ber(1)] = biterr(de2bi(y_sample(:,1)),tp.tgt(1).data_bit);
+[~,ber(2)] = biterr(de2bi(y_sample(:,2)),tp.tgt(2).data_bit);
+[~,ber_c(1)] = biterr(de2bi(y_sample(:,2)),tp.tgt(1).data_bit);
+[~,ber_c(2)] = biterr(de2bi(y_sample(:,1)),tp.tgt(2).data_bit);
+if ber(1) < ber_c(1)
+    clear ber_c
+else
+    ber = ber_c;
+    clear ber_c
 end

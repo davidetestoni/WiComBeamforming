@@ -11,7 +11,7 @@ end
 data_bit = reshape(data_bit,gc.N_bit_block/log2(gc.M),log2(gc.M),gc.N_blocks);
 
 for i = 1 : size(data_bit,3)
-    data_sample(:,:,i) = bi2de(data_bit(:,:,i),'left-msb');
+    data_sample(:,:,i) = bi2de(data_bit(:,:,i));
 end
 
 data_qam = qammod(data_sample,gc.M);
