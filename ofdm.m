@@ -40,22 +40,8 @@ data_ofdm =  zeros(N_fft,1,size(data_qam,3));
 pil = 3 + 3j;
 N_pil = max(size(pilot_pos));
 N_q_data = size(data_qam,1); 
-for i = 1 : size(data_qam,3)
-    data_ofdm(:,:,i) = cat(1,zeros(guard_bands(1),1),data_qam(:,:,i),zeros(guard_bands(2) + N_pil,1));
-    for j = 1: max(size(pilot_pos))
-        data_ofdm(:,:,i) = insert(data_ofdm(:,:,i),pil,pilot_pos(j));
-    end
-end
-clear t i j;
-
-%% IFFT
-ifft_sig = ifft(data_ofdm,N_fft);
-
-% add cycle prefix
-cp_sig = zeros(N_fft + N_cyclepref,1,N_blocks);
-cp_sig(1:N_cyclepref,:,:) = ifft_sig(end-N_cyclepref+1:end,:,:);
-cp_sig(N_cyclepref + 1:end,:,:) = ifft_sig(:,:,:);
-
+cp_sig = ofdm_mod(data_qam,pilot_pos,pil,guard_bands,N_cyclepref,N_fft,N_blocks);
+%
 t = 0:1/B *1e3:((1/delta_f)-1/B) *1e3;
 %bar(t,abs(ifft_sig(:,:,5)));
 %xlabel('time(us)')
@@ -140,7 +126,6 @@ for i = 1:size(y_sample,2)
     
 end
 
-return
 
 
 %% Freq Response

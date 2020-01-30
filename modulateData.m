@@ -1,6 +1,7 @@
 function [data_bit,data_sample,data_qam,cp_sig] = modulateData(gc,tp)
 %MODAULATEDATA Summary of this function goes here
 %   Detailed explanation goes here
+
 data_bit = randi([0 1],tp.N_bits,1);
 data_sample = zeros(gc.N_bit_block/log2(gc.M),1,gc.N_blocks);
 % zero padding
