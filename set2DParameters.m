@@ -2,7 +2,7 @@ function gc = set2DParameters(tp)
 %% all given constants
 gc.up_sample = 8; %?
 gc.c_light = 3e8;
-gc.fc = 26e9;               % 2.4 GHz ISM Band
+gc.fc = 26e9;               % 26 GHz 
 gc.lambda = gc.c_light/gc.fc;
 gc.nT = 290;       % Noise Temp in deg K
 gc.scan_az = -90:.001:90;
