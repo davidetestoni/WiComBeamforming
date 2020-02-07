@@ -29,17 +29,42 @@ real_angles = [real_angles;x_elev rand()*180-90 rand()*180-90 rand()*180-90];
 
 rx = collectPlaneWave(ura,all_sig,real_angles,fc);    
 
-rx_n = awgn(rx,10,'measured');
-
-
-
+maxSnr = 20;
+snr = 0:maxSnr;
+ber = zeros(maxSnr + 1,1);
+ber_conv = zeros(maxSnr + 1,1);
+snr_out = zeros(maxSnr + 1,1);
 %steeringvec = phased.SteeringVector('SensorArray',ura,'PropagationSpeed',physconst('LightSpeed'));
 
 %S = steeringvec(fc,real_angles);
 S = steer_vec_ura(ura,lambda,real_angles);
-
+% Null-beamforming
 g_1 = [1 0 0 0];
 S_inv = S' / (S * S');
-
 w_h = g_1 * S_inv;
 
+% Conventional beamforming
+s_0 = S(:,1);
+w_h_conv = (s_0/ura.getNumElements)';
+
+for i = 1 :21
+    rx_n = awgn(rx,snr(i),'measured');
+    n_pow = mean(mean(abs(rx_n).^2))/mean(mean(abs(rx).^2));
+    
+    y =  rx_n * transpose(w_h);
+    y_s = qamdemod(y,M);
+    y_b = de2bi(y_s);
+    [ ~,ber(i) ] = biterr(x_bit,y_b);
+    mean(abs(y).^2)
+    snr_out(i) = 10*log10(mean(abs(y).^2) / n_pow);
+    
+    
+    y_conv = rx_n * transpose(w_h_conv);
+    y_conv = de2bi(qamdemod(y_conv,M));
+    [ ~,ber_conv(i) ] = biterr(x_bit,y_conv);
+end
+figure
+plot(snr,snr_out);
+figure
+semilogy(snr,ber,snr,ber_conv)
+legend("Null","Conventional");
