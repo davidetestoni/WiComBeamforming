@@ -33,9 +33,13 @@ rx_n = awgn(rx,10,'measured');
 
 
 
-steeringvec = ...
-    phased.SteeringVector('SensorArray',ura,'PropagationSpeed',physconst('LightSpeed'));
+%steeringvec = phased.SteeringVector('SensorArray',ura,'PropagationSpeed',physconst('LightSpeed'));
 
-s = steeringvec(fc,[x_azim;x_elev]);
-s0 = steer_vec_ura(ura,lambda,[x_azim;x_elev]);
+%S = steeringvec(fc,real_angles);
+S = steer_vec_ura(ura,lambda,real_angles);
+
+g_1 = [1 0 0 0];
+S_inv = S' / (S * S');
+
+w_h = g_1 * S_inv;
 
