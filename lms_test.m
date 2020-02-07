@@ -22,12 +22,10 @@ ura = phased.URA( N_tx_el, ...
         'ElementSpacing', 0.5*lambda, ...
         'Element', phased.IsotropicAntennaElement('BackBaffled', false));
 
-all_sig = [x intf(:,1) intf(:,2) intf(:,3)];
 
 real_angles = [x_azim rand()*360-180 rand()*360-180 rand()*360-180];
 real_angles = [real_angles;x_elev rand()*180-90 rand()*180-90 rand()*180-90];
 
-rx = collectPlaneWave(ura,all_sig,real_angles,fc);    
 
 maxSnr = 20;
 snr = 0:maxSnr;
@@ -48,23 +46,28 @@ s_0 = S(:,1);
 w_h_conv = (s_0/ura.getNumElements)';
 
 for i = 1 :21
-    rx_n = awgn(rx,snr(i),'measured');
-    n_pow = mean(mean(abs(rx_n).^2))/mean(mean(abs(rx).^2));
-    
+    x_noise = awgn(x,snr(i),'measured');
+    all_sig = [x intf(:,1) intf(:,2) intf(:,3)];
+    rx_n = collectPlaneWave(ura,all_sig,real_angles,fc);    
+
+    n_pow = mean(mean(abs(x_noise).^2)) - mean(mean(abs(x).^2));
+    %rx_n = rx;
     y =  rx_n * transpose(w_h);
     y_s = qamdemod(y,M);
     y_b = de2bi(y_s);
     [ ~,ber(i) ] = biterr(x_bit,y_b);
-    mean(abs(y).^2)
+    mean(abs(y/16).^2)
     snr_out(i) = 10*log10(mean(abs(y).^2) / n_pow);
     
     
     y_conv = rx_n * transpose(w_h_conv);
+    pow_conv = mean(abs(y_conv).^2);
+    pow_conv
     y_conv = de2bi(qamdemod(y_conv,M));
     [ ~,ber_conv(i) ] = biterr(x_bit,y_conv);
 end
 figure
 plot(snr,snr_out);
-figure
-semilogy(snr,ber,snr,ber_conv)
-legend("Null","Conventional");
+%figure
+%semilogy(snr,ber,snr,ber_conv)
+%legend("Null","Conventional");
