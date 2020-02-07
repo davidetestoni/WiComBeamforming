@@ -47,7 +47,7 @@ w_h_conv = (s_0/ura.getNumElements)';
 
 for i = 1 :21
     x_noise = awgn(x,snr(i),'measured');
-    all_sig = [x intf(:,1) intf(:,2) intf(:,3)];
+    all_sig = [x_noise intf(:,1) intf(:,2) intf(:,3)];
     rx_n = collectPlaneWave(ura,all_sig,real_angles,fc);    
 
     n_pow = mean(mean(abs(x_noise).^2)) - mean(mean(abs(x).^2));
@@ -56,18 +56,25 @@ for i = 1 :21
     y_s = qamdemod(y,M);
     y_b = de2bi(y_s);
     [ ~,ber(i) ] = biterr(x_bit,y_b);
-    mean(abs(y/16).^2)
+    mean(abs(y).^2)
     snr_out(i) = 10*log10(mean(abs(y).^2) / n_pow);
+    snr_out(i) = snr(i) + 10*log10(mean(abs(reshape(rx_n,1,2500*16)).^2) - mean(abs(y).^2));
     
     
     y_conv = rx_n * transpose(w_h_conv);
     pow_conv = mean(abs(y_conv).^2);
+    snr_out_conv(i) = 10*log10(mean(abs(y_conv).^2) / n_pow);
+    snr_out_conv(i) = snr(i) + 10*log10(mean(abs(reshape(rx_n,1,2500*16)).^2) - mean(abs(y_conv).^2));
     pow_conv
     y_conv = de2bi(qamdemod(y_conv,M));
     [ ~,ber_conv(i) ] = biterr(x_bit,y_conv);
 end
 figure
 plot(snr,snr_out);
-%figure
-%semilogy(snr,ber,snr,ber_conv)
-%legend("Null","Conventional");
+hold on 
+plot(snr,snr_out_conv);
+legend("Null","Conventional");
+
+% figure
+% semilogy(snr,ber,snr,ber_conv)
+% legend("Null","Conventional");
