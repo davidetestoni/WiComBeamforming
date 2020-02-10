@@ -63,19 +63,19 @@ for i = 1 :21
 
     % Autocorrelation of the signals rapresent the correlation between all
     % the antennas
-    %for time = 1 :N_sample
-        Ru = transpose(rx_n) * transpose(rx_n)';
-        
-        w_opt = inv(Ru) * s_0 / (s_0' * inv(Ru) * s_0);
 
-        y_opt(:,1) = w_opt' * transpose(rx_n);
-        %y_opt(time,1) = y;
-        
-        %out_pow(time,i) = w_opt' * Ru * w_opt; 
-    %end
+    Ru = transpose(rx_n) * transpose(rx_n)'./N_sample;
+
+    w_opt = inv(Ru) * s_0 / (s_0' * inv(Ru) * s_0);
+
+    y_opt(:,1) = w_opt' * transpose(rx_n);
     
-    clear y;
-
+    U = transpose(all_sig) * transpose(all_sig)';
+    n_pow = mean(mean(abs(rx_n - rx).^2));
+    
+    Ru_ = S * U * S' + n_pow * eye(prod(N_tx_el));
+    
+    
     noise_out = y_opt - x;
     
     gain = 10*log10( mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
