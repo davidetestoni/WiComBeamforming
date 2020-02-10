@@ -46,49 +46,46 @@ s_0 = S(:,1);
 w_h_conv = (s_0/ura.getNumElements)';
 
 for i = 1 :21
-    x_noise = awgn(x,snr(i),'measured');
-    all_sig = [x_noise intf(:,1) intf(:,2) intf(:,3)];
-    rx_n = collectPlaneWave(ura,all_sig,real_angles,fc);    
-
+    %x_noise = awgn(x,snr(i),'measured');
+    all_sig = [x intf(:,1) intf(:,2) intf(:,3)];
+    %all_sig = x;
+    %real_angles = [x_azim;x_elev];
+    rx = collectPlaneWave(ura,all_sig,real_angles,fc);    
+    rx_n = awgn(rx,snr(i),mean(abs(x).^2));
+    
     all_noise_in = all_sig - x;
-    snr_in(i) = 10* log10 (mean(abs(x).^2) / mean(mean(abs(all_noise_in).^2)) );
+    
     y =  rx_n * transpose(w_h);
     noise_out = y - x;
-    n_out_pow = mean(mean(abs(noise_out).^2));
     
     y_s = qamdemod(y,M);
     y_b = de2bi(y_s);
     [ ~,ber(i) ] = biterr(x_bit,y_b);
     
     
-    gain = 10*log10(mean(mean(abs(all_noise_in).^2)) / n_out_pow);
+    gain = 10*log10(mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
     snr_out(i) = gain + snr(i);
+    gain
     
     
     y_conv = rx_n * transpose(w_h_conv);
     
     n_out_conv = y_conv - x;
     
-    gain_conv = 10*log10( mean(mean(abs(all_noise_in).^2)) / mean(abs(n_out_conv).^2) );
-    snr_out_conv(i) = snr(i) + gain_conv;
+    gain_conv = 10*log10( mean(mean(abs(rx_n - rx).^2)) / mean(abs(n_out_conv).^2) );
+    snr_out_conv(i) = gain_conv + snr(i);
+    
     y_conv = de2bi(qamdemod(y_conv,M));
     [ ~,ber_conv(i) ] = biterr(x_bit,y_conv);
 end
 figure
-plot(snr_in,snr_out,snr_in,snr_out_conv);
-title("Consider SINR input")
+plot(snr,snr_out,snr,snr_out_conv);
+title("Consider SNR input")
 
 legend("Null","Conventional");
 xlabel("SINR input");
 ylabel("SINR output");
 
-figure
-plot(snr,snr_out,snr,snr_out_conv);
-
-title("Consider SINR input")
-legend("Null","Conventional");
-xlabel("SNR input");
-ylabel("SINR output");
 
 % figure
 % semilogy(snr,ber,snr,ber_conv)
