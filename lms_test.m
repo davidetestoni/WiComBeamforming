@@ -38,7 +38,7 @@ snr_out = zeros(maxSnr + 1,1);
 S = steer_vec_ura(ura,lambda,real_angles);
 % Null-beamforming
 g_1 = [1 0 0 0];
-S_inv = S' / (S * S');
+S_inv = pinv(S);%S' / (S * S');
 w_h = g_1 * S_inv;
 
 % Conventional beamforming
@@ -46,10 +46,8 @@ s_0 = S(:,1);
 w_h_conv = (s_0/ura.getNumElements)';
 
 for i = 1 :21
-    %x_noise = awgn(x,snr(i),'measured');
+    
     all_sig = [x intf(:,1) intf(:,2) intf(:,3)];
-    %all_sig = x;
-    %real_angles = [x_azim;x_elev];
     rx = collectPlaneWave(ura,all_sig,real_angles,fc);    
     rx_n = awgn(rx,snr(i),mean(abs(x).^2));
     
@@ -65,7 +63,7 @@ for i = 1 :21
     
     gain = 10*log10(mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
     snr_out(i) = gain + snr(i);
-    gain
+    %gain
     
     
     y_conv = rx_n * transpose(w_h_conv);
