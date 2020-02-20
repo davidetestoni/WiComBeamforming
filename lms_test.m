@@ -59,22 +59,37 @@ for i = 1 :21
     all_noise_in = all_sig - x;
     
     
-    %OPTIMAL
+    %% MVDR
 
     % Autocorrelation of the signals rapresent the correlation between all
     % the antennas
 
     Ru = transpose(rx_n) * transpose(rx_n)'./N_sample;
 
-    w_opt = inv(Ru) * s_0 / (s_0' * inv(Ru) * s_0);
+    w_mvdr = inv(Ru) * s_0 / (s_0' * inv(Ru) * s_0);
+    %w_mvdr = w_mvdr / sum(abs(w_mvdr));
 
-    y_opt(:,1) = w_opt' * transpose(rx_n);
+    y_mvdr(:,1) = w_mvdr' * transpose(rx_n);
     
     U = transpose(all_sig) * transpose(all_sig)';
     n_pow = mean(mean(abs(rx_n - rx).^2));
     
-    Ru_ = S * U * S' + n_pow * eye(prod(N_tx_el));
+    Ru_ = S * U * S' + n_pow * eye(prod(N_tx_el)) /N_sample; % alternative formulation. Ru == Ru_
     
+    noise_out = y_mvdr - x;
+    
+    gain = 10*log10( mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
+    snr_mvdr(i) = gain + snr(i);
+    
+    [ ~,ber_mvdr(i) ] = biterr(x_bit,de2bi(qamdemod(y_mvdr,M)) );
+    
+    %% Wiener and MSE
+    dn = transpose(x);
+    un = transpose(rx_n);
+    p = (un * dn') /N_sample; % cross correlation beteween rx data and 
+    mse = (dn * dn')/N_sample + w_mvdr' * Ru * w_mvdr - 2* w_mvdr' * p;
+    w_opt = inv(Ru) * p;
+    y_opt(:,1) = w_opt' * un;
     
     noise_out = y_opt - x;
     
@@ -83,8 +98,29 @@ for i = 1 :21
     
     [ ~,ber_opt(i) ] = biterr(x_bit,de2bi(qamdemod(y_opt,M)) );
     
+    %% MMSE
+    mmse = (dn * dn')/N_sample + w_opt' * Ru * w_opt;
     
-    % NULL
+    %% LMS
+    mu = 1/trace(Ru);
+    wn = rand(prod(N_tx_el),1) + 1i*rand(prod(N_tx_el),1);
+    wn = wn ./ sum(abs(wn));
+    for iter = 1:1000
+        en = un' * wn - dn'; % error of actual iteration
+        mse_grad = 2*un * en /N_sample; % gradient of the MSE with the actual wn
+        wn = wn - 0.5 * mu * mse_grad;
+    end
+    y_lms(:,1) = wn' * un;
+    
+    noise_out = y_lms - x;
+    
+    gain = 10*log10( mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
+    snr_lms(i) = gain + snr(i);
+    
+    
+    [ ~,ber_lms(i) ] = biterr(x_bit,de2bi(qamdemod(y_lms,M)) );
+    
+    %% NULL
     y_null =  rx_n * transpose(w_h);
     noise_out = y_null - x;
     
@@ -96,7 +132,7 @@ for i = 1 :21
     gain = 10*log10(mean(mean(abs(rx_n - rx).^2)) / mean(abs(noise_out).^2));
     snr_null(i) = gain + snr(i);
 
-    %CONVENTIONAL
+    %% CONVENTIONAL
     y_conv = rx_n * transpose(w_h_conv);
     
     n_out_conv = y_conv - x;
@@ -108,15 +144,38 @@ for i = 1 :21
 end
 
 figure
-plot(snr,snr_null,'ro-')
+plot(snr,snr_null,'gs-')
 hold on
-plot(snr,snr_conv,'gx-')
-plot(snr,snr_opt,'bs-')
-title("Consider SNR input")
+plot(snr,snr_conv,'gx--')
+plot(snr,snr_mvdr,'bo-')
+plot(snr,snr_opt,'cd-')
+plot(snr,snr_lms,'rx-')
 
-legend("Null","Conventional","MVDR");
+title("SNR Performance")
+
+legend("Null","Conventional","MVDR","Wiener","LMS");
 xlabel("SINR input");
 ylabel("SINR output");
+hold off;
+
+ber_opt(ber_opt == 0) = 1e-5;
+ber_lms(ber_lms == 0) = 1e-5;
+ber_null(ber_null == 0) = 1e-5;
+ber_mvdr(ber_mvdr == 0) = 2e-5;
+
+figure
+semilogy(snr,ber_null,'gs-')
+hold on
+semilogy(snr,ber_conv,'gx--')
+semilogy(snr,ber_mvdr,'bo-')
+semilogy(snr,ber_opt,'cd-')
+semilogy(snr,ber_lms,'rx-')
+
+title("BER")
+
+legend("Null","Conventional","MVDR","Wiener","LMS");
+xlabel("SINR input");
+ylabel("BER");
 
 real_angles
 
