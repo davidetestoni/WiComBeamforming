@@ -146,9 +146,9 @@ end
 figure
 plot(snr,snr_null,'gs-')
 hold on
-plot(snr,snr_conv,'gx--')
+plot(snr,snr_conv,'kx--')
 plot(snr,snr_mvdr,'bo-')
-plot(snr,snr_opt,'cd-')
+plot(snr,snr_opt,'kd-')
 plot(snr,snr_lms,'rx-')
 
 title("SNR Performance")
@@ -166,9 +166,9 @@ ber_mvdr(ber_mvdr == 0) = 2e-5;
 figure
 semilogy(snr,ber_null,'gs-')
 hold on
-semilogy(snr,ber_conv,'gx--')
+semilogy(snr,ber_conv,'kx--')
 semilogy(snr,ber_mvdr,'bo-')
-semilogy(snr,ber_opt,'cd-')
+semilogy(snr,ber_opt,'kd-')
 semilogy(snr,ber_lms,'rx-')
 
 title("BER")
