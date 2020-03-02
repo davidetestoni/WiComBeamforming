@@ -4,12 +4,12 @@ clc
 
 t = qd_track('linear',200,0);
 t.name = 'Terminal';
-t.initial_position = [100,100,2];      
+t.initial_position = [100;100;2];      
 t.calc_orientation;
 l = qd_layout;   
 
 [~,l.tx_track] = interpolate( t.copy,'distance',0.1 );
-l.rx_position = [0,0,15];
+l.rx_position = [0;0;15];
 
 l.visualize([],[],0);    
 axis equal
